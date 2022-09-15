@@ -17,7 +17,6 @@ import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import { axiosInstance } from "./utils/axios.instance";
 import { IconBrandGithub, IconPackage, IconWorld } from "@tabler/icons";
 import dayjs from "dayjs";
-import ReactApexChart from "react-apexcharts";
 import getPercentage from "./utils/getPercentage";
 
 function App() {
