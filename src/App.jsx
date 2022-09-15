@@ -10,12 +10,14 @@ import {
   ActionIcon,
   Tooltip,
   RingProgress,
+  Anchor,
 } from "@mantine/core";
 import { useState, useEffect } from "react";
 import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import { axiosInstance } from "./utils/axios.instance";
 import { IconBrandGithub, IconPackage, IconWorld } from "@tabler/icons";
 import dayjs from "dayjs";
+import ReactApexChart from "react-apexcharts";
 import getPercentage from "./utils/getPercentage";
 
 function App() {
@@ -23,7 +25,7 @@ function App() {
   const [data, setData] = useState([]);
   const [selectedItem, setSelectedItem] = useState();
   const [packageData, setPackageData] = useState([]);
-  const [debounced] = useDebouncedValue(value, 400);
+  const [debounced] = useDebouncedValue(value, 250);
   const mediaLg = useMediaQuery("(min-width: 992px)");
 
   useEffect(() => {
@@ -37,8 +39,11 @@ function App() {
   }, [debounced]);
 
   return (
-    <Box className="App">
-      <Box sx={{ paddingBlock: "3.5rem", textAlign: "center" }}>
+    <Box
+      className="App"
+      sx={{ minBlockSize: "100vh", display: "flex", flexDirection: "column" }}
+    >
+      <Box sx={{ paddingBlock: "3.5rem", textAlign: "center", flex: 1 }}>
         <Title
           order={1}
           size={mediaLg ? 60 : 24}
@@ -73,6 +78,9 @@ function App() {
             maxDropdownHeight={400}
             data={data}
           />
+          <Text sx={{ textAlign: "left" }} mt={4} color="dimmed">
+            e.g. - react, bootstrap, sass, @mui/material
+          </Text>
         </Box>
 
         {selectedItem ? (
@@ -134,7 +142,6 @@ function App() {
                   </Group>
                 )}
               </Group>
-
               {packageData.collected.metadata.keywords && (
                 <Group spacing={3} mb="lg">
                   {packageData.collected.metadata.keywords.map((item) => (
@@ -152,14 +159,20 @@ function App() {
                   )}
                 </Text>
               </Text>
+              <Box my={mediaLg ? "lg" : "md"}>
+                <Title order={6} weight={600} mb={4} size={15} color="d">
+                  Description
+                </Title>
+                <Text size={mediaLg ? "lg" : "md"}>
+                  {packageData.collected.metadata.description}
+                </Text>
+              </Box>
 
-              <Text mt={mediaLg ? "lg" : "md"}>
-                {packageData.collected.metadata.description}
-              </Text>
+              {/* GitHub Data */}
 
               {packageData.collected.github && (
                 <Paper withBorder my={mediaLg ? 24 : 32} p="xl" radius="md">
-                  <Title order={6} mb="lg">
+                  <Title order={6} mb="sm">
                     GitHub Data
                   </Title>
                   <Group spacing={mediaLg ? 48 : 20}>
@@ -194,7 +207,6 @@ function App() {
                   </Group>
                 </Paper>
               )}
-
               {packageData.score && (
                 <Group mt={mediaLg ? 48 : 24} spacing={mediaLg ? "lg" : "sm"}>
                   <Box sx={{ textAlign: "center" }}>
@@ -340,6 +352,12 @@ function App() {
             </Paper>
           </Container>
         ) : null}
+      </Box>
+
+      <Box py={20} px={16} sx={{ textAlign: "center" }}>
+        <Text size="sm" color="dimmed">
+          Built by <Anchor href="https://vipinmishra.dev/">Vipin Mishra</Anchor>
+        </Text>
       </Box>
     </Box>
   );
