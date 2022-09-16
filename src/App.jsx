@@ -11,12 +11,15 @@ import {
   Tooltip,
   RingProgress,
   Anchor,
+  Checkbox,
 } from "@mantine/core";
 import { useState, useEffect } from "react";
 import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import { axiosInstance } from "./utils/axios.instance";
 import { IconBrandGithub, IconPackage, IconWorld } from "@tabler/icons";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 import getPercentage from "./utils/getPercentage";
 
 function App() {
@@ -24,18 +27,25 @@ function App() {
   const [data, setData] = useState([]);
   const [selectedItem, setSelectedItem] = useState();
   const [packageData, setPackageData] = useState([]);
-  const [debounced] = useDebouncedValue(value, 250);
+  const [filters, setFilters] = useState({
+    deprecated: true,
+  });
+  const [debounced] = useDebouncedValue(value, 200);
   const mediaLg = useMediaQuery("(min-width: 992px)");
 
   useEffect(() => {
     debounced &&
       axiosInstance
-        .get(`/search?q=${encodeURIComponent(debounced)}`)
+        .get(
+          `/search?q=${encodeURIComponent(debounced)}${
+            Boolean(filters.deprecated) ? "+not:deprecated" : ""
+          }`
+        )
         .then((data) => {
           const dataArray = data.data.results.map((item) => item.package.name);
           setData(dataArray);
         });
-  }, [debounced]);
+  }, [debounced, filters.deprecated]);
 
   return (
     <Box
@@ -77,9 +87,18 @@ function App() {
             maxDropdownHeight={400}
             data={data}
           />
-          <Text sx={{ textAlign: "left" }} mt={4} color="dimmed">
+          <Text size="xs" sx={{ textAlign: "left" }} mt={4} color="dimmed">
             e.g. - react, bootstrap, sass, @mui/material
           </Text>
+          <Paper mt={20}>
+            <Checkbox
+              checked={filters.deprecated}
+              onChange={(event) =>
+                setFilters({ ...filters, deprecated: event.target.checked })
+              }
+              label="Exclude deprecated packages from search results"
+            />
+          </Paper>
         </Box>
 
         {selectedItem ? (
@@ -143,23 +162,21 @@ function App() {
               </Group>
               {packageData.collected.metadata.keywords && (
                 <Group spacing={3} mb="lg">
-                  {packageData.collected.metadata.keywords.map((item) => (
-                    <Badge key={item} size="sm">
+                  {packageData.collected.metadata.keywords.map((item, idx) => (
+                    <Badge key={idx} size="sm">
                       {item}
                     </Badge>
                   ))}
                 </Group>
               )}
-              <Text size="xs" mb="sm">
+              <Text size="md" mb="sm">
                 Last Updated:{" "}
                 <Text component="span" color="dimmed">
-                  {dayjs(packageData.collected.metadata.date).format(
-                    "MMM D, YYYY h:mm A"
-                  )}
+                  {dayjs(packageData.collected.metadata.date).fromNow()}
                 </Text>
               </Text>
               <Box my={mediaLg ? "lg" : "md"}>
-                <Title order={6} weight={600} mb={4} size={15} color="d">
+                <Title order={6} weight={600} mb={4} size={12} color="dimmed">
                   Description
                 </Title>
                 <Text size={mediaLg ? "lg" : "md"}>
@@ -171,7 +188,7 @@ function App() {
 
               {packageData.collected.github && (
                 <Paper withBorder my={mediaLg ? 24 : 32} p="xl" radius="md">
-                  <Title order={6} mb="sm">
+                  <Title order={6} mb="lg" color="dimmed" size={14}>
                     GitHub Data
                   </Title>
                   <Group spacing={mediaLg ? 48 : 20}>
@@ -207,144 +224,154 @@ function App() {
                 </Paper>
               )}
               {packageData.score && (
-                <Group mt={mediaLg ? 48 : 24} spacing={mediaLg ? "lg" : "sm"}>
-                  <Box sx={{ textAlign: "center" }}>
-                    <Text size="sm" color="dimmed">
-                      Package Score
-                    </Text>
-                    <RingProgress
-                      size={88}
-                      sections={[
-                        {
-                          value: getPercentage(packageData.score.final, 1),
-                          color:
-                            getPercentage(packageData.score.final, 1) > 80
-                              ? "green"
-                              : getPercentage(packageData.score.final, 1) > 50
-                              ? "orange"
-                              : "red",
-                        },
-                      ]}
-                      label={
-                        <Text weight={400} align="center" size="sm">
-                          {`${Math.round(
-                            getPercentage(packageData.score.final, 1)
-                          )}%`}
-                        </Text>
-                      }
-                    />
-                  </Box>
+                <Group
+                  mt={mediaLg ? 48 : 24}
+                  spacing={mediaLg ? "lg" : "sm"}
+                  position="apart"
+                >
+                  <Group position="lg">
+                    <Box sx={{ textAlign: "center" }}>
+                      <Text size="sm" color="dimmed">
+                        Quality
+                      </Text>
+                      <RingProgress
+                        size={88}
+                        sections={[
+                          {
+                            value: getPercentage(
+                              packageData.score.detail.quality,
+                              1
+                            ),
+                            color:
+                              getPercentage(
+                                packageData.score.detail.quality,
+                                1
+                              ) > 80
+                                ? "green"
+                                : getPercentage(
+                                    packageData.score.detail.quality,
+                                    1
+                                  ) > 50
+                                ? "orange"
+                                : "red",
+                          },
+                        ]}
+                        label={
+                          <Text weight={400} align="center" size="sm">
+                            {`${Math.round(
+                              getPercentage(packageData.score.detail.quality, 1)
+                            )}%`}
+                          </Text>
+                        }
+                      />
+                    </Box>
 
-                  <Box sx={{ textAlign: "center" }}>
-                    <Text size="sm" color="dimmed">
-                      Quality
-                    </Text>
-                    <RingProgress
-                      size={88}
-                      sections={[
-                        {
-                          value: getPercentage(
-                            packageData.score.detail.quality,
-                            1
-                          ),
-                          color:
-                            getPercentage(packageData.score.detail.quality, 1) >
-                            80
-                              ? "green"
-                              : getPercentage(
-                                  packageData.score.detail.quality,
-                                  1
-                                ) > 50
-                              ? "orange"
-                              : "red",
-                        },
-                      ]}
-                      label={
-                        <Text weight={400} align="center" size="sm">
-                          {`${Math.round(
-                            getPercentage(packageData.score.detail.quality, 1)
-                          )}%`}
-                        </Text>
-                      }
-                    />
-                  </Box>
-
-                  <Box sx={{ textAlign: "center" }}>
-                    <Text size="sm" color="dimmed">
-                      Popularity
-                    </Text>
-                    <RingProgress
-                      size={88}
-                      sections={[
-                        {
-                          value: getPercentage(
-                            packageData.score.detail.popularity,
-                            1
-                          ),
-                          color:
-                            getPercentage(
+                    <Box sx={{ textAlign: "center" }}>
+                      <Text size="sm" color="dimmed">
+                        Popularity
+                      </Text>
+                      <RingProgress
+                        size={88}
+                        sections={[
+                          {
+                            value: getPercentage(
                               packageData.score.detail.popularity,
                               1
-                            ) > 80
-                              ? "green"
-                              : getPercentage(
-                                  packageData.score.detail.popularity,
-                                  1
-                                ) > 50
-                              ? "orange"
-                              : "red",
-                        },
-                      ]}
-                      label={
-                        <Text weight={400} align="center" size="sm">
-                          {`${Math.round(
-                            getPercentage(
-                              packageData.score.detail.popularity,
-                              1
-                            )
-                          )}%`}
-                        </Text>
-                      }
-                    />
-                  </Box>
+                            ),
+                            color:
+                              getPercentage(
+                                packageData.score.detail.popularity,
+                                1
+                              ) > 80
+                                ? "green"
+                                : getPercentage(
+                                    packageData.score.detail.popularity,
+                                    1
+                                  ) > 50
+                                ? "orange"
+                                : "red",
+                          },
+                        ]}
+                        label={
+                          <Text weight={400} align="center" size="sm">
+                            {`${Math.round(
+                              getPercentage(
+                                packageData.score.detail.popularity,
+                                1
+                              )
+                            )}%`}
+                          </Text>
+                        }
+                      />
+                    </Box>
 
-                  <Box sx={{ textAlign: "center" }}>
-                    <Text size="sm" color="dimmed">
-                      Maintenance
-                    </Text>
-                    <RingProgress
-                      size={88}
-                      sections={[
-                        {
-                          value: getPercentage(
-                            packageData.score.detail.maintenance,
-                            1
-                          ),
-                          color:
-                            getPercentage(
+                    <Box sx={{ textAlign: "center" }}>
+                      <Text size="sm" color="dimmed">
+                        Maintenance
+                      </Text>
+                      <RingProgress
+                        size={88}
+                        sections={[
+                          {
+                            value: getPercentage(
                               packageData.score.detail.maintenance,
                               1
-                            ) > 80
-                              ? "green"
-                              : getPercentage(
-                                  packageData.score.detail.maintenance,
-                                  1
-                                ) > 50
-                              ? "orange"
-                              : "red",
-                        },
-                      ]}
-                      label={
-                        <Text weight={400} align="center" size="sm">
-                          {`${Math.round(
-                            getPercentage(
-                              packageData.score.detail.maintenance,
-                              1
-                            )
-                          )}%`}
-                        </Text>
-                      }
-                    />
+                            ),
+                            color:
+                              getPercentage(
+                                packageData.score.detail.maintenance,
+                                1
+                              ) > 80
+                                ? "green"
+                                : getPercentage(
+                                    packageData.score.detail.maintenance,
+                                    1
+                                  ) > 50
+                                ? "orange"
+                                : "red",
+                          },
+                        ]}
+                        label={
+                          <Text weight={400} align="center" size="sm">
+                            {`${Math.round(
+                              getPercentage(
+                                packageData.score.detail.maintenance,
+                                1
+                              )
+                            )}%`}
+                          </Text>
+                        }
+                      />
+                    </Box>
+                  </Group>
+
+                  <Box>
+                    <Box sx={{ textAlign: "center" }}>
+                      <Text size="sm" color="dimmed">
+                        Overall Score
+                      </Text>
+                      <RingProgress
+                        size={88}
+                        sections={[
+                          {
+                            value: getPercentage(packageData.score.final, 1),
+                            color:
+                              getPercentage(packageData.score.final, 1) > 80
+                                ? "green"
+                                : getPercentage(packageData.score.final, 1) > 50
+                                ? "orange"
+                                : "red",
+                          },
+                        ]}
+                        label={
+                          <Text weight={400} align="center" size="sm">
+                            {`${Math.round(
+                              getPercentage(packageData.score.final, 1)
+                            )}%`}
+                          </Text>
+                        }
+                      />
+                    </Box>
                   </Box>
                 </Group>
               )}
